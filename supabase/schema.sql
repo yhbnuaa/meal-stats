@@ -53,12 +53,24 @@ create table if not exists group_pulse (
   updated_at timestamptz not null default now()
 );
 
+-- 全局配置：建群口令（哈希存储）。只有知道口令的人才能建群。
+create table if not exists app_config (
+  id                 int primary key default 1,
+  create_secret_hash text not null,
+  constraint app_config_single_row check (id = 1)
+);
+-- 初始化建群口令（仅首次写入；之后改口令见文件末尾说明）
+insert into app_config(id, create_secret_hash)
+  values (1, extensions.crypt('chifan2026', extensions.gen_salt('bf')))
+  on conflict (id) do nothing;
+
 -- ---------- RLS：默认全锁，只有 group_pulse 可读 ----------
 
 alter table groups      enable row level security;
 alter table members     enable row level security;
 alter table check_ins   enable row level security;
 alter table group_pulse enable row level security;
+alter table app_config  enable row level security;
 
 drop policy if exists pulse_read on group_pulse;
 create policy pulse_read on group_pulse for select using (true);
@@ -133,14 +145,20 @@ end $$;
 --  成员侧 RPC
 -- ============================================================
 
--- 建群
-create or replace function create_group(p_name text, p_password text)
+-- 建群（需建群口令）
+drop function if exists create_group(text, text);
+create or replace function create_group(p_name text, p_password text, p_secret text)
 returns jsonb security definer set search_path = public, extensions language plpgsql as $$
-declare new_code text; tries int := 0;
+declare new_code text; tries int := 0; secret_ok boolean;
 begin
   if btrim(coalesce(p_name,'')) = '' or btrim(coalesce(p_password,'')) = '' then
     return jsonb_build_object('error','missing');
   end if;
+  select exists(
+    select 1 from app_config
+    where id = 1 and create_secret_hash = crypt(coalesce(p_secret,''), create_secret_hash)
+  ) into secret_ok;
+  if not secret_ok then return jsonb_build_object('error','bad_secret'); end if;
   loop
     new_code := lower(substr(md5(gen_random_uuid()::text), 1, 6));
     exit when not exists(select 1 from groups where code = new_code);
@@ -351,3 +369,8 @@ begin
   update groups set code = new_code where code = p_code;
   return jsonb_build_object('ok', true, 'code', new_code);
 end $$;
+
+-- ============================================================
+--  建群口令：默认 'chifan2026'。要改成你自己的口令，单独跑这一行：
+--    update app_config set create_secret_hash = extensions.crypt('你的新口令', extensions.gen_salt('bf')) where id = 1;
+-- ============================================================

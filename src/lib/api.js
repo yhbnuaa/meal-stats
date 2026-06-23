@@ -17,8 +17,8 @@ export class ApiError extends Error {
 }
 
 // 成员侧
-export const createGroup = (name, password) =>
-  rpc('create_group', { p_name: name, p_password: password })
+export const createGroup = (name, password, secret) =>
+  rpc('create_group', { p_name: name, p_password: password, p_secret: secret })
 
 export const joinGroup = (code, memberId, name) =>
   rpc('join_group', { p_code: code, p_member_id: memberId, p_name: name })

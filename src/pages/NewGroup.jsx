@@ -8,6 +8,7 @@ export default function NewGroup() {
   const nav = useNavigate()
   const [name, setName] = useState('')
   const [pw, setPw] = useState('')
+  const [secret, setSecret] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [created, setCreated] = useState(null) // { code }
@@ -25,13 +26,15 @@ export default function NewGroup() {
     e.preventDefault()
     setErr('')
     if (!name.trim() || !pw.trim()) { setErr('群名和管理密码都要填'); return }
+    if (!secret.trim()) { setErr('请填写建群口令'); return }
     setBusy(true)
     try {
-      const res = await createGroup(name.trim(), pw.trim())
+      const res = await createGroup(name.trim(), pw.trim(), secret.trim())
       rememberGroup(res.code, name.trim())
       setCreated({ code: res.code })
     } catch (e) {
-      setErr('创建失败：' + e.message)
+      if (e.code === 'bad_secret') setErr('建群口令不对，请向管理员索取')
+      else setErr('创建失败：' + e.message)
     } finally {
       setBusy(false)
     }
@@ -74,6 +77,10 @@ export default function NewGroup() {
         <label className="field">
           <span>管理密码（食堂查看统计用）</span>
           <input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="设一个密码" />
+        </label>
+        <label className="field">
+          <span>建群口令（向管理员索取）</span>
+          <input type="password" value={secret} onChange={(e) => setSecret(e.target.value)} placeholder="只有知道口令才能建群" />
         </label>
         {err && <p className="error-text">{err}</p>}
         <button className="btn-primary" disabled={busy}>{busy ? '创建中…' : '创建'}</button>
