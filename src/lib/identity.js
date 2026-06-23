@@ -7,8 +7,10 @@ const NAME_PREFIX = 'meal:name:'        // meal:name:<code> -> 昵称
 export function getDeviceId() {
   let id = localStorage.getItem(DEVICE_KEY)
   if (!id) {
-    id = (crypto.randomUUID && crypto.randomUUID()) ||
-      'd-' + Math.random().toString(36).slice(2) + Date.now().toString(36)
+    const c = typeof crypto !== 'undefined' ? crypto : null
+    id = (c && typeof c.randomUUID === 'function' && c.randomUUID()) ||
+      'd-' + Math.random().toString(36).slice(2) + Date.now().toString(36) +
+      Math.random().toString(36).slice(2)
     localStorage.setItem(DEVICE_KEY, id)
   }
   return id

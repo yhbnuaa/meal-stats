@@ -8,6 +8,10 @@ const base = process.env.VITE_BASE || '/'
 
 export default defineConfig({
   base,
+  // 兼容较老的浏览器内核（部分鸿蒙/华为浏览器），把新语法降级
+  build: {
+    target: ['es2015', 'chrome64', 'safari11.1', 'firefox60', 'edge18']
+  },
   plugins: [
     react(),
     VitePWA({

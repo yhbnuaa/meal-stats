@@ -9,6 +9,28 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>吃饭统计</title>
+    <script>
+      (function () {
+        function showFatal(msg) {
+          var r = document.getElementById('root')
+          if (r && !r.getAttribute('data-crashed')) {
+            r.setAttribute('data-crashed', '1')
+            r.innerHTML =
+              '<div style="padding:20px;font-family:sans-serif;color:#b3322f;font-size:14px;line-height:1.6;white-space:pre-wrap;word-break:break-all">' +
+              '页面加载出错了，请把下面这段信息截图发给开发者：\n\n' +
+              (msg || '未知错误') + '</div>'
+          }
+        }
+        window.addEventListener('error', function (e) {
+          showFatal((e && e.message ? e.message : '脚本错误') +
+            (e && e.filename ? '\n@ ' + e.filename + ':' + (e.lineno || '') : ''))
+        })
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e && e.reason
+          showFatal('Promise 错误: ' + (r && r.message ? r.message : r))
+        })
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
