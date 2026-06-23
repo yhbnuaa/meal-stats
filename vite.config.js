@@ -32,8 +32,26 @@ export default defineConfig({
         ]
       },
       workbox: {
-        navigateFallback: 'index.html',
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}']
+        // 新 SW 立即接管，清掉旧缓存——避免老版本白屏卡住
+        clientsClaim: true,
+        skipWaiting: true,
+        cleanupOutdatedCaches: true,
+        // 带 hash 的静态资源(js/css/图标)预缓存即可，文件名变了自然更新
+        globPatterns: ['**/*.{js,css,svg,png,ico,webmanifest}'],
+        // 页面(HTML)不进预缓存，改为「网络优先」：在线永远拿最新版，
+        // 离线时回退到上次访问缓存的版本
+        navigateFallback: null,
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-pages',
+              networkTimeoutSeconds: 3,
+              expiration: { maxEntries: 10 }
+            }
+          }
+        ]
       }
     })
   ]
